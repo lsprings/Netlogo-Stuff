@@ -1,0 +1,107 @@
+Assignment 5: Hack-a-thon!
+========================================================
+Lauren Springs  
+   
+
+------------
+### Below is the model's partial ODD template for reference.
+
+ODD Template 
+ The model description follows the ODD (Overview, Design concepts, Details) protocol for describing individual- and agent-based models (Grimm et al. 2006, 2010). 
+
+### 1. Purpose
+Many current studies analyze admixed populations by comparing them to possible ancestral groups that are often sampled in local patches and assumed to be representative of the larger population.  The purpose of this model is to illustrate any inherent problems within common sampling procedures to determine if the populations under study are being represented appropriately.  It is my hope that it will increase understanding and awareness regarding if and how sampling sizes and biases can affect estimations of admixture in multiple populations.  
+
+### 2. Entities, state variables, and scales  
+The agents in this model are humans.  Each human will have the following attributes:
+*	ID number (permanent)
+*	Location (on grid)
+*	Sex (permanent)
+*	Generational age
+*	Siblings (siblings are included in the model to control for inbreeding)
+*	Population group 
+*	Maternal and paternal genetic panels (list of attributes inherited randomly from parents) (permanent)
+*	Dispersal range (distance of movement from home) (permanent)
+* Immigrant status
+
+Populations are considered to be collectives in this model and traits associated with them include group sizes, sex ratios, and genetic structures.  Population and subpopulation sex and genetic panels can be modeled on existing studies/demographic information.  
+
+Spatial entities include geographic barriers to gene flow.  Each barrier has the following attributes:
+*	Location (permanent)
+One unit in time will be representative of one generation in time.  Simulations can be run for a user-defined period of generations.  The model world will not be wrapped along either axis.  
+
+### 3. Process overview and scheduling
+Individual processes occur in the following order: die, possibly move, check for mates, reproduce, set siblings and age.  The order in which the agents are selected to perform each process is random.  Attributes of the agents are updated synchronously each generation after reproduction.
+
+### 4. Design concepts
+*Emergence.*  Genetic panel patterning should emerge from population mixing.
+
+*Sensing.*  Agents should be able to sense barriers that occupy their neighborhood and be aware of their own dispersal range and other agents’ ages and familial groups.
+
+*Interaction.* Interactions occur between human agents in the form of reproduction and also between human agents and geographic barriers, which prohibit human crossing into a geographic region. 
+
+*Stochasticity.* Ability to cross a population barrier is modeled as a randomly drawn probability that a human agent will be able to move across a barrier.  Mating partners are also randomly chosen among proximate individuals.  Also, the segments of genetic panels inherited by offspring are randomly chosen from their parent’s genetic panels.
+
+*Collectives.* Collectives include familial units that emerge through reproduction as well as populations, which have differing genetic panels and sex ratios.
+
+*Observation.* For the model analysis, the following population level variables were recorded at each time unit: age distribution, sex distribution, genetic distribution, and immigration status.
+
+
+### Further questions to be incorporated in the next section regarding details
+  
+#### Modeling choices:
+  
+Incorporate gene flow between parental and daughter populations during admixing
+- Should there be gene flow from parent pops to daughter after the intial admixture?
+- Should there be back gene flow from the daughter to the parents?
+- Should the parent pops experience gene flow between eachother during the modeling?
+- Should there be sex-biased gene flow?  
+  
+When should sampling of the populations occur?
+
+What are the average parameter values for dispersal range, number of children per family per generation and intial population sex ratios to be implemented in the model?
+   
+----------------
+
+### Validating and Verifying the model
+
+#### Debugging
+For this model, the majority of debugging was performed by inspecting agents as they progressed through the simulation to ensure that the coding was functioning properly.  A major issue I had (which will be talked about in this weeks journal) involved making sure that the offspring of each generation were truly inheriting a random assortment of their mother's alleles and their father's alleles.  Frequently I could get the code to work but it would copy only one set of the maternal or paternal alleles.  So instead of having a maternal genotype that is made up of both grandparents genotypes, it would often be inherited as either the grandmother or grandfathers only.
+
+After modifying the code so that the genes are inherited correctly, I inspected sibling and parental genotypes and was able to confirm that the inheritance function is working properly.  In the following screen shot, the parents are situated on the left of the screen and the offspring on the right.  Notice that maternal and paternal alleles were inherited independently in the offspring and randomly from the parents.
+
+<img src="debuggeno.tiff" alt="Drawing" style="width: 800px;"/>
+  
+I additionally let the model run a number of times to ensure that the population barriers were working correctly and that individuals from one group could not migrate into neighboring populations.  Populations are colored blue, yellow, and green. Population barriers are in black (the bottom of the world is cut off).
+
+<img src="debugbarriers.tiff" alt="Drawing" style="width: 500px;"/>
+
+One thing that I haven't been able to debug is the issue of population stability.  I have modeled the populations to produce 2 offspring per couple in a lifetime so that the population is always replaced and size stays relatively constant.  However, I created a population size graph to monitor the parameter and have discovered that this portion of the model isn't functioning correctly.  When initial population sizes are larger, population growth is exponential.  When initial population sizes are smaller, the populations quickly die out.  The image on the left shows the graph of a simulation that starts populations 1 and 2 out at 150 members and the image on the right shows a simulation with starting population sizes of 50.
+
+<img src="debugbigpop.tiff" alt="Drawing" style="width: 387px;"/>
+<img src="debugsmallpop.tiff" alt="Drawing" style="width: 387px;"/>
+  
+The population size issue seems to be related to the fact that sex ratios in the model are not always exactly replicated (resulting in loss of population size) and I have limited computing power for larger populations (so I tend to start them off smaller).  The interaction of unequal sex ratios and smaller populations produces groups that tend to die off.  In an effort to make the population size stable, I've messed up the math a bit and thrown the system for a bit of a loop.
+
+#### Validating the model
+
+In terms of model validation, I've compared the population dynamics that have been produced in multiple simulations with known dynamics of genetic drift, the evolutionary force I've modeled.  A few of the examples are reproduced below and the corresponding data files are zipped into the folder:
+  
+In the following two images, you can see that even when you start with the same population sizes, after 75 generations of isolation, the populations are beginning to develop different allelic frequencies at any give locus.
+  
+<img src="interface3.tiff" alt="Drawing" style="width: 800px;"/>
+<img src="interface4.tiff" alt="Drawing" style="width: 800px;"/>
+  
+Additionally, in situations where the sizes of the populations differed at the beginning of the simulation, the smaller populations displayed more allelic drift than did the larger populations, as would be expected if the model were correctly imitating drift.  In the first of the following three images, the simulation was ended when population 1 was depleted.  However, you can very clearly see a number of population 1's alleles drift to fixity just prior to death.
+
+<img src="interface1ss.tiff" alt="Drawing" style="width: 800px;"/>
+<img src="interface6sdif.tiff" alt="Drawing" style="width: 800px;"/>
+<img src="interface8sdif.tiff" alt="Drawing" style="width: 800px;"/>
+  
+I also allowed the model to run for shorter and longer periods of time to make sure that the longer a population existed, the more drift they experienced.  The follwing images capture simulations run for 5, 25, and 75 generations respectively.
+
+<img src="interface5yr.tiff" alt="Drawing" style="width: 800px;"/>
+<img src="interface25y2.tiff" alt="Drawing" style="width: 800px;"/>
+<img src="interface2.tiff" alt="Drawing" style="width: 800px;"/>
+  
+Finally, I attempted to run simulations for exponentially expanding populations, but was hindered by computational power.  I would expect that in quickly growing populations drift would be less pronounced.  Overall, it seems like I've been able to create a system that succesfully replicates genetic drift in populations, but I do still need to figure out why the population size dynamics appear a bit off.  
