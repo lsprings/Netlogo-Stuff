@@ -1,0 +1,228 @@
+globals [filename]
+
+
+turtles-own [sex age range partner sibs original-pop mat-genotype pat-genotype cross-barriers? immigrants?]
+breed [population1 pop1]
+breed [population2 pop2]
+breed [populationAD popAD]
+
+to setup
+  ca
+  ;ifelse import-patches? = true
+  ;[import-patches]
+  ;[
+    ask patches [
+    set pcolor 19.9
+    if pycor = 249 and pxcor <= 300 [set pcolor black]  ;; following 4 lines create a standard world with 3 equally sized population areas
+    if pxcor = 300 [set pcolor black]                   
+    if pycor < 62 and pxcor > 300 [set pcolor black]
+    if pycor > 447 and pxcor > 300 [set pcolor black]]
+  ;]
+  make-pop1
+  make-pop2
+  reset-ticks
+end
+  
+to make-pop1  
+  create-population1 size-pop1 [   
+    ifelse random-float 1 < pop1-%males
+        [set sex "male" set shape "person"]
+        [set sex "female" set shape "female"]
+    set size 8 
+    set color blue
+    set xcor 300 - random-float 300
+    set ycor 249 + random-float 250
+    set age 1
+    set immigrants? "no"
+    set original-pop 1
+    set range random-normal pop1-range (pop1-range / 4)  ;;; come up with a better standard deviation for this
+    set mat-genotype (list random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5)  
+    set pat-genotype (list random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5)  
+    set partner nobody
+    set sibs nobody]
+end
+
+to make-pop2
+  create-population2 size-pop2 [
+    ifelse random-float 1 < pop2-%males
+      [set sex "male" set shape "person"]
+      [set sex "female" set shape "female"]
+    set size 8 
+    set color yellow
+    set xcor 300 - random-float 300
+    set ycor 249 - random-float 249
+    set age 1
+    set immigrants? "no"
+    set original-pop 2
+    set range random-normal pop2-range (pop2-range / 4)  ;;; come up with a better standard deviation for this
+    set mat-genotype (list random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5)  
+    set pat-genotype (list random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5 random 5)  
+    set partner nobody
+    set sibs nobody]
+end
+
+to initialize-pops  ;; should allow a burn-in period for the populations to differentiate before which they are sampled to create the admixed population
+  repeat initial-diff [go]
+end
+
+to go   ;; should also add a population control function
+  if initial-diff + generations-admixed <= ticks [stop]
+  ask turtles [
+    if age = 3 [die]
+    repeat range [move]]
+  let single-ladies turtles with [age = 2 and partner = nobody and sex = "female"]
+  ask single-ladies [check-for-mates]
+  ask turtles[
+    reproduce]
+  let possible-sibs turtles with [age = 1]
+  ask possible-sibs [set-sibs]
+  ask turtles [
+    set age age + 1
+    if auto-export? = True and ticks = 0 [export-data]
+    if auto-export? = True and remainder ticks auto-export = 0 [export-data]]
+  tick
+end
+
+to move
+  rt 180 lt 180
+   ifelse patch-ahead 1 = nobody
+   [face one-of neighbors with [pcolor != black]]
+   [if [pcolor] of patch-ahead 1 = black
+    [face one-of neighbors with [pcolor != black]]]
+   fd 1 
+end
+
+to check-for-mates    
+  if any? other breed ;in-radius 20   
+  with [age = 2 and partner = nobody and sex = "male" and sibs != self]  ;; this code is breed-specific
+  [set partner one-of other breed ;in-radius 20 
+    with [age = 2 and partner = nobody and sex = "male" and sibs != self]
+    ask partner [set partner myself]]
+end
+
+to reproduce    ;; need to work on this.  agents either don't reproduce enough to sustain many generations or they get too big too fast.  helps when they can breed with anyone in population and the sample size is ~ 150 per pop
+  if sex = "female" and partner != nobody  and [original-pop] of partner = [original-pop] of self [  ;; for mating within a population (original-pop)
+    let genotype-dad-mat [mat-genotype] of partner
+    let genotype-dad-pat [pat-genotype] of partner   
+    hatch round (random-normal ave-kids 2) [set heading random 360 set age 1  ;; make normal distribution more realistic
+        ifelse random-float 1 < .5
+      [set sex "male" set shape "person"]
+      [set sex "female" set shape "female"]
+      set partner nobody
+      set sibs nobody
+      set size 8
+      ;set range random-normal pop2-range (pop2-range / 4)          ;;; come up with a better distribution for this
+      let locus-m 0
+      while [locus-m <= length mat-genotype - 1] [                       ;;; no clue how I got this to work, but its been the product of about 100 hours
+        if random-float 1 < .5
+        [set mat-genotype replace-item locus-m mat-genotype item locus-m pat-genotype]
+        set locus-m locus-m + 1]
+      set pat-genotype genotype-dad-mat
+      let locus-d 0
+      while [locus-d <= length pat-genotype - 1] [ 
+              if random-float 1 < .5
+        [set pat-genotype replace-item locus-d pat-genotype item locus-d genotype-dad-pat]
+        set locus-d locus-d + 1]
+]]
+    if sex = "female" and partner != nobody and [original-pop] of partner != [original-pop] of self [
+    let genotype-dad-mat [mat-genotype] of partner
+    let genotype-dad-pat [pat-genotype] of partner 
+    hatch round (random-normal ave-kids 2) [set heading random 360 set age 1  ;; make normal distribution more realistic
+        ifelse random-float 1 < .5
+      [set sex "male" set shape "person"]
+      [set sex "female" set shape "female"]
+      set partner nobody
+      set sibs nobody
+      set size 8
+      set color green                                              ;;; sets color of admixed individuals to green
+      set original-pop "AD"                                        ;;; sets original population of admixed individuals to "AD" - admixed
+      ;set range random-normal pop2-range (pop2-range / 4)          ;;; come up with a better distribution for this
+      let locus 0
+            let locus-m 0
+      while [locus-m <= length mat-genotype - 1] [                       ;;; no clue how I got this to work, but its been the product of about 100 hours
+        if random-float 1 < .5
+        [set mat-genotype replace-item locus-m mat-genotype item locus-m pat-genotype]
+        set locus-m locus-m + 1]
+      set pat-genotype genotype-dad-mat
+      let locus-d 0
+      while [locus-d <= length pat-genotype - 1] [ 
+              if random-float 1 < .5
+        [set pat-genotype replace-item locus-d pat-genotype item locus-d genotype-dad-pat]
+        set locus-d locus-d + 1]
+]]
+end
+
+to set-sibs       ;;; currently not letting all sibs add one another ;; need to work out
+  if any? other turtles-here with [age = 1] [set sibs other turtles-here with [age = 1] 
+      ;ask sibs [set sibs myself]  ;; commenting this line out gets rid of problem listed in above 2 lines
+      ]
+end
+
+to make-popAD
+  ask n-of (size-popAD * pop1-component * %males-frompop1) population1 with [sex = "male"] [
+    set breed populationAD
+    set shape "person"
+    set xcor 300 + random-float 199
+    set ycor 62 + random-float 385
+    set immigrants? "yes"]
+  ask n-of (pop1-component * size-popAD * (1 - %males-frompop1)) population1 with [sex = "female"] [
+    set breed populationAD
+    set shape "female"
+    set xcor 300 + random-float 199
+    set ycor 62 + random-float 385
+    set immigrants? "yes"]
+   ask n-of ((1 - pop1-component) * size-popAD * %males-frompop2) population2 with [sex = "male"] [
+    set breed populationAD
+    set shape "person"
+    set xcor 300 + random-float 199
+    set ycor 62 + random-float 385
+    set immigrants? "yes"]
+  ask n-of ((1 - pop1-component) * size-popAD * (1 - %males-frompop2)) population2 with [sex = "female"] [
+    set breed populationAD
+    set shape "female"
+    set xcor 300 + random-float 199
+    set ycor 62 + random-float 385
+    set immigrants? "yes"]
+end
+
+to set-export-file
+  set filename user-new-file   ;; We check to make sure we actually got a string just in case
+                               ;; the user hits the cancel button.
+  if is-string? filename
+  [
+    ;; If the file already exists, we begin by deleting it, otherwise
+    ;; new data would be appended to the old contents.
+    if file-exists? filename
+      [ file-delete filename ]
+  ]
+  file-open filename
+  file-type (word "Tick, ID, Breed, Original-pop, Sex, Mat-genotype, Pat-genotype")
+  file-print ""
+  file-close
+end
+
+to export-data
+  file-open filename
+  file-type (word ticks ",")
+  file-type (word who ", " breed ", ")
+  file-type (word original-pop ",")
+  file-type (word sex ", ")
+  file-type (word mat-genotype ",")
+  file-type (word pat-genotype)
+  file-print "" ;; this puts in a carriage return
+  file-close
+end
+
+;;;;;;;;; future stuff ;;;;;;;
+
+to import-patches               ;; Option to import a different landscape
+  file-open user-file
+  while [not file-at-end?]
+  [
+    let pxcor-X file-read
+    let pycor-Y file-read
+    let pcolor-C file-read
+    ask patch pxcor-X pycor-Y [set pcolor pcolor-C]
+    ]
+  file-close
+end
